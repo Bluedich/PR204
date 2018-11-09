@@ -7,10 +7,12 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <poll.h>
 
 /* autres includes (eventuellement) */
 
 #define ERROR_EXIT(str) {perror(str);exit(EXIT_FAILURE);}
+#define BUFFER_SIZE 1024
 
 /* definition du type des infos */
 /* de connexion des processus dsm */
@@ -18,11 +20,11 @@ struct dsm_proc_conn  {
    int rank;
    /* a completer */
 };
-typedef struct dsm_proc_conn dsm_proc_conn_t; 
+typedef struct dsm_proc_conn dsm_proc_conn_t;
 
 /* definition du type des infos */
 /* d'identification des processus dsm */
-struct dsm_proc {   
+struct dsm_proc {
   pid_t pid;
   dsm_proc_conn_t connect_info;
 };
