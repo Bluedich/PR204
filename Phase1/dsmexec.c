@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 
     /* 1- on recupere le nombre de processus a lancer */
     num_procs = nb_machine_files(argv[1]);
+    pid_t child_pid[num_procs];
     char **machine_names = malloc(num_procs*sizeof(char *));
     for(i=0;i<num_procs;i++){
       machine_names[i] = malloc(BUFFER_SIZE*sizeof(char));
@@ -75,7 +76,6 @@ int main(int argc, char *argv[])
     /* 2- on recupere les noms des machines : le nom de */
     /* la machine est un des elements d'identification */
     num_procs = read_machine_file(num_procs, argv[1],machine_names);
-    printf("Machine file read with %d machines : %s %s\n", num_procs, machine_names[0], machine_names[1]);
 
     /* creation de la socket d'ecoute */
     /* + ecoute effective */
@@ -104,7 +104,6 @@ int main(int argc, char *argv[])
       if(pid == -1) ERROR_EXIT("ERROR forking");
 
       if (pid == 0) { /* fils */
-        printf("fils %d in  the place \n",i);
 
         //fermeture des extremités en lecture des pipes du fils
         close(pipe_fd_out[0]);
@@ -120,27 +119,23 @@ int main(int argc, char *argv[])
         /* Creation du tableau d'arguments pour le ssh */
         strcpy(newargv[0],"ssh");
         strcpy(newargv[1],machine_names[i]);
+        strcpy(newargv[2],"~/PR204/Phase1/bin/dsmwrap");
         for(i=2;i<argc;i++){
-          strcpy(newargv[i],argv[i]);
+          strcpy(newargv[i+1],argv[i]);
         }
-        newargv[i]=NULL;
+        newargv[i+1]=NULL;
 
         /* jump to new prog : */
-        printf("newargv : %s %s %s %s %s\n", newargv[0], newargv[1], newargv[2], newargv[3], newargv[4]);
-        sleep(5);
-        printf("Bonjour les enfants\n");
-        if(-1==execvp("ssh",newargv)) ERROR_EXIT("ERROR doing execv");
+        if(-1==execvp("ssh", newargv)) ERROR_EXIT("ERROR doing execv");
 
 
       } else  if(pid > 0) { /* pere */
         // fermeture des extremités en ecriture des pipes
+        child_pid[i] = pid;
         close(pipe_fd_out[1]);
         close(pipe_fd_err[1]);
         pipe_out[i] = pipe_fd_out[0];
         pipe_err[i] = pipe_fd_err[0];
-        printf("Dady's pipe redirected\n");
-
-
         num_procs_creat++;
       }
     }
@@ -171,7 +166,7 @@ int main(int argc, char *argv[])
     jusqu'à ce qu'ils soient inactifs (ie fermes par les
     processus dsm ecrivains de l'autre cote ...)*/
     struct pollfd * fds = malloc(2*num_procs*sizeof(struct pollfd));
-    //init pollfd structs
+
     for(i=0;i<num_procs;i++){
       fds[i].fd =pipe_out[i];
       fds[i].events = POLLIN;
@@ -186,20 +181,22 @@ int main(int argc, char *argv[])
         if (fds[i].revents & POLLIN) {
           memset(buffer, 0, BUFFER_SIZE);
           read(pipe_out[i], buffer, BUFFER_SIZE);
-          printf("stdout of process n°%d : %s", i, buffer);
+          printf("stdout of process n°%d :\n%s\nend of stdout.\n", i, buffer);
         }
       }
       for(i=num_procs;i<2*num_procs;i++){
         if (fds[i].revents & POLLIN) {
           memset(buffer, 0, BUFFER_SIZE);
           read(pipe_err[i-num_procs], buffer, BUFFER_SIZE);
-          printf("stderr off process n°%d : %s", i-num_procs, buffer);
+          printf("stderr of process n°%d :\n%s\nend of stderr.\n", i-num_procs, buffer);
         }
       }
     }
 
   /* on attend les processus fils */
-
+  for(i=0;i<num_procs;i++){
+    waitpid(child_pid[i], NULL, 0);
+  }
   /* on ferme les descripteurs proprement */
 
   /* on ferme la socket d'ecoute */
