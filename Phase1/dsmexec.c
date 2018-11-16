@@ -1,4 +1,4 @@
-#include "common_impl.h"
+#include "common.h"
 #include <unistd.h>
 
 /* variables globales */
@@ -51,6 +51,12 @@ int read_machine_file(int n, char machine_file[], char * machine_names[]){
   return n;
 }
 
+int do_accept(int sock, struct sockaddr * c_addr, socklen_t * c_addrlen){
+  int c_sock = accept(sock, c_addr, c_addrlen);
+  if(c_sock == -1)
+    ERROR_EXIT("ERROR accepting");
+  return c_sock;
+}
 
 int main(int argc, char *argv[])
 {
@@ -78,15 +84,19 @@ int main(int argc, char *argv[])
     num_procs = read_machine_file(num_procs, argv[1],machine_names);
 
     /* creation de la socket d'ecoute */
+    int port;
+    int listen_sock = creer_socket(LISTEN, &port);
+
     /* + ecoute effective */
+    listen(listen_sock, -1);
 
     /* creation des fils */
     int pipe_fd_out[2];
     int pipe_fd_err[2];
     int *pipe_out = (int *) malloc(num_procs*sizeof(int));
     int *pipe_err = (int *) malloc(num_procs*sizeof(int));
-    char **newargv = malloc((argc+1)*sizeof(char *));
-    for(i=0;i<(argc+1);i++){
+    char **newargv = malloc((argc+3)*sizeof(char *));
+    for(i=0;i<(argc+3);i++){
       newargv[i] = malloc(BUFFER_SIZE*sizeof(char));
     }
     int res;
@@ -120,8 +130,15 @@ int main(int argc, char *argv[])
         strcpy(newargv[0],"ssh");
         strcpy(newargv[1],machine_names[i]);
         strcpy(newargv[2],"~/PR204/Phase1/bin/dsmwrap");
+        memset(buffer, 0, BUFFER_SIZE);
+        gethostname(buffer, BUFFER_SIZE);
+        sprintf(buffer, "%s", buffer);
+        strcpy(newargv[3],buffer);
+        memset(buffer, 0, BUFFER_SIZE);
+        sprintf(buffer, "%d", port);
+        strcpy(newargv[4],buffer);
         for(i=2;i<argc;i++){
-          strcpy(newargv[i+1],argv[i]);
+          strcpy(newargv[i+3],argv[i]);
         }
         newargv[i+1]=NULL;
 
@@ -140,26 +157,47 @@ int main(int argc, char *argv[])
       }
     }
 
+    int * init_sock = malloc(sizeof(int)*num_procs);
+    dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*num_procs);
+    struct sockaddr * addr = (struct sockaddr *) malloc(sizeof(struct sockaddr));
+    socklen_t addrlen;
+
     for(i = 0; i < num_procs ; i++){
 
       /* on accepte les connexions des processus dsm */
-
+      init_sock[i] = do_accept(listen_sock, addr, &addrlen);
       /*  On recupere le nom de la machine distante */
       /* 1- d'abord la taille de la chaine */
+      readline(init_sock[i], buffer, BUFFER_SIZE);
+      conn_info[i].name_length = atoi(buffer);
       /* 2- puis la chaine elle-meme */
-
+      readline(init_sock[i], buffer, BUFFER_SIZE);
+      strcpy(conn_info[i].name, buffer);
       /* On recupere le pid du processus distant  */
-
+      readline(init_sock[i], buffer, BUFFER_SIZE);
+      conn_info[i].pid = atoi(buffer);
       /* On recupere le numero de port de la socket */
       /* d'ecoute des processus distants */
+      readline(init_sock[i], buffer, BUFFER_SIZE);
+      conn_info[i].port = atoi(buffer);
+
     }
 
-    /* envoi du nombre de processus aux processus dsm*/
+    for(i = 0; i < num_procs ; i++){
+      /* envoi du nombre de processus aux processus dsm*/
+      memset(buffer, 0, BUFFER_SIZE);
+      sprintf(buffer, "%d", num_procs);
+      writeline(init_sock[i], buffer, BUFFER_SIZE);
+      /* envoi des rangs aux processus dsm */
+      memset(buffer, 0, BUFFER_SIZE);
+      sprintf(buffer, "%d", i);
+      writeline(init_sock[i], buffer, BUFFER_SIZE);
 
-    /* envoi des rangs aux processus dsm */
-
-    /* envoi des infos de connexion aux processus */
-
+      /* envoi des infos de connexion aux processus */
+      conn_info[i].rank = i;
+      conn_info[i].num_procs = num_procs;
+      write(init_sock[i], conn_info, num_procs*sizeof(dsm_proc_conn_t));
+    }
     /* gestion des E/S : on recupere les caracteres */
     /* sur les tubes de redirection de stdout/stderr */
     /*je recupere les infos sur les tubes de redirection
