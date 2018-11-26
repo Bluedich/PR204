@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[])
 {
-  printf("MERDE\n" );
+   printf("On lance truc\n" );
    int fd;
    int i;
    char str[1024];
@@ -20,7 +20,8 @@ int main(int argc, char *argv[])
    for(i= 0; i < argc ; i++)
      fprintf(stderr,"arg[%i] : %s\n",i,argv[i]);
 
-   sprintf(exec_path,"%s/%s",str,"titi");
+  //  sprintf(exec_path,"%s/%s",str,"titi");
+  sprintf(exec_path,"%s/%s",str,argv[1]);
    fd = open(exec_path,O_RDONLY);
    if(fd == -1) perror("open");
    fprintf(stdout,"================ Valeur du descripteur : %i\n",fd);
