@@ -135,16 +135,25 @@ char *dsm_init(int argc, char **argv)
 {
    struct sigaction act;
    int index;
+   int sock_init = argv[argc-1];
 
    /* reception du nombre de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_NUM)*/
+   readline(sock_init, buffer, BUFFER_SIZE);
+   DSM_NODE_NUM = atoi(buffer);
 
    /* reception de mon numero de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_ID)*/
+   readline(sock_init, buffer, BUFFER_SIZE);
+   DSM_NODE_ID = atoi(buffer);
 
    /* reception des informations de connexion des autres */
    /* processus envoyees par le lanceur : */
    /* nom de machine, numero de port, etc. */
+   dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*num_procs);
+   read(sock_init, conn_info, num_procs*sizeof(dsm_proc_conn_t));
+   test_conn_info(conn_info, num_procs);
+
 
    /* initialisation des connexions */
    /* avec les autres processus : connect/accept */

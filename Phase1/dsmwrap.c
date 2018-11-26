@@ -36,14 +36,14 @@ int main(int argc, char **argv)
    int i;
    char buffer[BUFFER_SIZE];
    char buffer2[BUFFER_SIZE];
-   char **newargv = malloc((argc-2)*sizeof(char *));
+   char **newargv = malloc((argc-1)*sizeof(char *));
    for(i=0;i<(argc-2);i++){
      newargv[i] = malloc(BUFFER_SIZE*sizeof(char));
    }
    for(i=0;i<argc-3;i++){
      strcpy(newargv[i],argv[i+3]);
    }
-   newargv[i+1] = NULL;
+
 
    /* creation d'une socket pour se connecter au */
    /* au lanceur et envoyer/recevoir les infos */
@@ -79,19 +79,9 @@ int main(int argc, char **argv)
    sprintf(buffer, "%d", port);
    writeline(sock_init, buffer, BUFFER_SIZE);
 
-   //reception du nombre de processus
-   readline(sock_init, buffer, BUFFER_SIZE);
-   int num_procs = atoi(buffer);
-
-   //reception du rangs
-   readline(sock_init, buffer, BUFFER_SIZE);
-   int rank = atoi(buffer);
-
-   // On recoit les infos de connection de tous les processus;
-   dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*num_procs);
-   read(sock_init, conn_info, num_procs*sizeof(dsm_proc_conn_t));
-   test_conn_info(conn_info, num_procs);
-
+   sprintf(buffer, "%d", sock_init);
+   strcpy(newargv[i+1],buffer);
+      newargv[i+2] = NULL;
    /* on execute la bonne commande */
    if(-1==execvp(newargv[0], newargv)) ERROR_EXIT("ERROR doing execv in dsmwrap");
    return 0;
