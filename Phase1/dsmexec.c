@@ -129,7 +129,6 @@ int main(int argc, char *argv[])
         /* Creation du tableau d'arguments pour le ssh */
         strcpy(newargv[0],"ssh");
         strcpy(newargv[1],machine_names[i]);
-        // strcpy(newargv[2],"~/progC/PR204/Phase1/bin/dsmwrap");
         strcpy(newargv[2],"~/PR204/Phase1/bin/dsmwrap");
         memset(buffer, 0, BUFFER_SIZE);
         gethostname(buffer, BUFFER_SIZE);
@@ -141,7 +140,8 @@ int main(int argc, char *argv[])
         for(i=2;i<argc;i++){
           strcpy(newargv[i+3],argv[i]);
         }
-        newargv[argc+3]=NULL;
+        newargv[i+1]=NULL;
+
         /* jump to new prog : */
         if(-1==execvp("ssh", newargv)) ERROR_EXIT("ERROR doing execv");
 
@@ -166,8 +166,6 @@ int main(int argc, char *argv[])
 
       /* on accepte les connexions des processus dsm */
       init_sock[i] = do_accept(listen_sock, addr, &addrlen);
-      printf("Socket d'intialisation avec processus %d effectué\n",i);
-
       /*  On recupere le nom de la machine distante */
       /* 1- d'abord la taille de la chaine */
       readline(init_sock[i], buffer, BUFFER_SIZE);
