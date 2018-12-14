@@ -17,8 +17,9 @@ int main(int argc, char *argv[])
    fprintf(stdout,"Working dir is %s\n",str);
 
    fprintf(stdout,"Number of args : %i\n", argc);
-   for(i= 0; i < argc ; i++)
+   for(i= 0; i < argc ; i++){
      fprintf(stderr,"arg[%i] : %s\n",i,argv[i]);
+   }
 
   //  sprintf(exec_path,"%s/%s",str,"titi");
   sprintf(exec_path,"%s/%s",str,argv[1]);

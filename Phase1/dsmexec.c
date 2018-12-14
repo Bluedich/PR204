@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
         for(i=2;i<argc;i++){
           strcpy(newargv[i+3],argv[i]);
         }
-        newargv[i+1]=NULL;
+        newargv[i+4]=NULL;
 
         /* jump to new prog : */
         if(-1==execvp("ssh", newargv)) ERROR_EXIT("ERROR doing execv");
