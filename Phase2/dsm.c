@@ -1,4 +1,6 @@
 #include "dsm.h"
+#include "common.h"
+
 
 int DSM_NODE_NUM; /* nombre de processus dsm */
 int DSM_NODE_ID;  /* rang (= numero) du processus */
@@ -76,7 +78,7 @@ static void *dsm_comm_daemon( void *arg)
 }
 int address2num( char * addr){
 
-  return (( (long int)(addr-BASE_ADDR))/(PAGE_SIZE);
+  return (( (long int)(addr-BASE_ADDR))/(PAGE_SIZE));
 }
 
 static int dsm_send(int dest,void *buf,size_t size)
@@ -133,37 +135,64 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
 /* dans les programmes utilisateurs de la DSM                       */
 char *dsm_init(int argc, char **argv)
 {
+   printf("WASASASA SA SA\n" );
    struct sigaction act;
    int index;
-   int sock_init = argv[argc-1];
+   int sock_init = atoi(argv[argc-1]);
+   char buffer[BUFFER_SIZE];
+
 
    /* reception du nombre de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_NUM)*/
    readline(sock_init, buffer, BUFFER_SIZE);
    DSM_NODE_NUM = atoi(buffer);
 
+
    /* reception de mon numero de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_ID)*/
    readline(sock_init, buffer, BUFFER_SIZE);
    DSM_NODE_ID = atoi(buffer);
+   printf("Nb procs : %d Numero procs : %d\n",DSM_NODE_NUM,DSM_NODE_ID );
 
    /* reception des informations de connexion des autres */
    /* processus envoyees par le lanceur : */
    /* nom de machine, numero de port, etc. */
-   dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*num_procs);
-   read(sock_init, conn_info, num_procs*sizeof(dsm_proc_conn_t));
-   test_conn_info(conn_info, num_procs);
+   dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*DSM_NODE_NUM);
+   read(sock_init, conn_info, DSM_NODE_NUM*sizeof(dsm_proc_conn_t));
+  //  test_conn_info(conn_info, DSM_NODE_NUM);
 
+// conn_info->rank, conn_info->num_procs, conn_info->pid, conn_info->port, conn_info->name_length, conn_info->name
+
+   struct addrinfo* res_tab[DSM_NODE_NUM];
+   int sock_tab[DSM_NODE_NUM];
 
    /* initialisation des connexions */
    /* avec les autres processus : connect/accept */
-
-   /* Allocation des pages en tourniquet */
-   for(index = 0; index < PAGE_NUMBER; index ++){
-     if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
-       dsm_alloc_page(index);
-     dsm_change_info( index, WRITE, index % DSM_NODE_NUM);
-   }
+   //  for (i=0;i<DSM_NODE_NUM-DSM_NODE_ID;i++){
+   //    sock_tab[i] = creer_socket(LISTEN, &port);
+   //  déja créer dans DSM wrap
+   //
+   //  }
+   //  int id2connect;
+  //  int i;
+  //  int port;
+  //
+  //  for (i=0;i<DSM_NODE_NUM-DSM_NODE_ID-1;i++){
+  //    sock_tab[DSM_NODE_NUM-i] = creer_socket(CONNECT, &port);
+  //   //  id2connect = DSM_NODE_NUM-i;
+  //    get_addr_info(conn_info[DSM_NODE_NUM-i], conn_info[DSM_NODE_NUM-i], &res_tab[DSM_NODE_NUM-i]);
+  //    do_connect(sock_tab[DSM_NODE_NUM-i],res_tab[DSM_NODE_NUM-i]->ai_addr, res_tab[DSM_NODE_NUM-i]->ai_addrlen);
+  //  }
+  //  //
+  // //  listen(listen_sock, -1);
+  // //  init_sock[i] = do_accept(listen_sock, addr, &addrlen);
+  //
+  //  /* Allocation des pages en tourniquet */
+  //  for(index = 0; index < PAGE_NUMBER; index ++){
+  //    if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
+  //      dsm_alloc_page(index);
+  //    dsm_change_info( index, WRITE, index % DSM_NODE_NUM);
+  //  }
 
    /* mise en place du traitant de SIGSEGV */
    act.sa_flags = SA_SIGINFO;
