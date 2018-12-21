@@ -138,28 +138,28 @@ char *dsm_init(int argc, char **argv)
    printf("WASASASA SA SA\n" );
    struct sigaction act;
    int index;
-   int sock_init = atoi(argv[argc-1]);
+   int sock_init = atoi(argv[argc-2]);
+   int sock_listen = atoi(argv[argc-1]);
    char buffer[BUFFER_SIZE];
-
 
    /* reception du nombre de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_NUM)*/
    readline(sock_init, buffer, BUFFER_SIZE);
    DSM_NODE_NUM = atoi(buffer);
 
-
    /* reception de mon numero de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_ID)*/
    readline(sock_init, buffer, BUFFER_SIZE);
    DSM_NODE_ID = atoi(buffer);
-   printf("Nb procs : %d Numero procs : %d\n",DSM_NODE_NUM,DSM_NODE_ID );
+  //  printf("Nb procs : %d Numero procs : %d\n",DSM_NODE_NUM,DSM_NODE_ID );
 
    /* reception des informations de connexion des autres */
    /* processus envoyees par le lanceur : */
    /* nom de machine, numero de port, etc. */
    dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*DSM_NODE_NUM);
    read(sock_init, conn_info, DSM_NODE_NUM*sizeof(dsm_proc_conn_t));
-  //  test_conn_info(conn_info, DSM_NODE_NUM);
+   printf("Num port: %d\n", conn_info->port);
+   test_conn_info(conn_info, DSM_NODE_NUM);
 
 // conn_info->rank, conn_info->num_procs, conn_info->pid, conn_info->port, conn_info->name_length, conn_info->name
 
@@ -168,24 +168,24 @@ char *dsm_init(int argc, char **argv)
 
    /* initialisation des connexions */
    /* avec les autres processus : connect/accept */
-   //  for (i=0;i<DSM_NODE_NUM-DSM_NODE_ID;i++){
-   //    sock_tab[i] = creer_socket(LISTEN, &port);
-   //  déja créer dans DSM wrap
+  //   for (i=0;i<DSM_NODE_NUM-DSM_NODE_ID;i++){
+  //     sock_tab[i] = creer_socket(LISTEN, &port);
+  //   // déja créer dans DSM wrap
    //
-   //  }
-   //  int id2connect;
+  //   }
+  //   int id2connect;
   //  int i;
   //  int port;
-  //
+   //
   //  for (i=0;i<DSM_NODE_NUM-DSM_NODE_ID-1;i++){
   //    sock_tab[DSM_NODE_NUM-i] = creer_socket(CONNECT, &port);
   //   //  id2connect = DSM_NODE_NUM-i;
   //    get_addr_info(conn_info[DSM_NODE_NUM-i], conn_info[DSM_NODE_NUM-i], &res_tab[DSM_NODE_NUM-i]);
   //    do_connect(sock_tab[DSM_NODE_NUM-i],res_tab[DSM_NODE_NUM-i]->ai_addr, res_tab[DSM_NODE_NUM-i]->ai_addrlen);
   //  }
-  //  //
-  // //  listen(listen_sock, -1);
-  // //  init_sock[i] = do_accept(listen_sock, addr, &addrlen);
+   //
+  //  listen(sock_listen, -1);
+  //  init_sock[i] = do_accept(sock_listen, addr, &addrlen);
   //
   //  /* Allocation des pages en tourniquet */
   //  for(index = 0; index < PAGE_NUMBER; index ++){

@@ -2,7 +2,7 @@
 
 void test_conn_info(dsm_proc_conn_t * conn_infos, int num_procs){
   int i;
-  dsm_proc_conn_t  * conn_info;
+  dsm_proc_conn_t * conn_info;
   for(i=0;i<num_procs;i++){
     conn_info = conn_infos+i;
     printf("Process n°%d\n rank : %d\n num_porcs : %d\n pid : %d\n port : %d\n name_length : %d\n name : %s\n",i, conn_info->rank, conn_info->num_procs, conn_info->pid, conn_info->port, conn_info->name_length, conn_info->name);
