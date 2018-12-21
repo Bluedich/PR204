@@ -23,7 +23,7 @@ void do_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
   if (res != 0) {
     ERROR_EXIT("ERROR connecting");
   }
-  printf("> Connected to host.\n");
+  //printf("> Connected to host.\n");
 }
 
 int main(int argc, char **argv)
@@ -36,14 +36,17 @@ int main(int argc, char **argv)
    int i;
    char buffer[BUFFER_SIZE];
    char buffer2[BUFFER_SIZE];
-   char **newargv = malloc((argc-2)*sizeof(char *));
-   for(i=0;i<(argc-2);i++){
+   int newargc = argc-3;
+   printf("newargc = %d\n", newargc);
+   fflush(stdout);
+   char **newargv = malloc((newargc)*sizeof(char *));
+   for(i=0;i<(newargc);i++){
      newargv[i] = malloc(BUFFER_SIZE*sizeof(char));
    }
-   for(i=0;i<argc-3;i++){
+   for(i=0;i<newargc;i++){
      strcpy(newargv[i],argv[i+3]);
    }
-   newargv[i+1] = NULL;
+   newargv[newargc] = NULL;
 
    /* creation d'une socket pour se connecter au */
    /* au lanceur et envoyer/recevoir les infos */
@@ -91,14 +94,16 @@ int main(int argc, char **argv)
    dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*num_procs);
    read(sock_init, conn_info, num_procs*sizeof(dsm_proc_conn_t));
    test_conn_info(conn_info, num_procs);
-   for (i=0;i<argc;i++){
-     printf("argument n %d : %s\n",i,argv[i]);
-   }
-   for (i=0;i<argc-1;i++){
-     printf("argument n %d : %s\n",i,newargv[i]);
-   }
 
+  //  for (i=0;i<argc;i++){
+  //    printf("argument n %d : %s\n",i,argv[i]);
+  //  }
+  //  for (i=0;i<newargc+1;i++){
+  //    printf("argument n %d : %s\n",i,newargv[i]);
+  //  }
+  //  fflush(stdout);
    /* on execute la bonne commande */
+   
    if(-1==execvp(newargv[0], newargv)) ERROR_EXIT("ERROR doing execv in dsmwrap");
    return 0;
 }
