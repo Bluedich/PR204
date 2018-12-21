@@ -2,10 +2,10 @@
 
 void test_conn_info(dsm_proc_conn_t * conn_infos, int num_procs){
   int i;
-  dsm_proc_conn_t  * conn_info;
+  dsm_proc_conn_t conn_info;
   for(i=0;i<num_procs;i++){
-    conn_info = conn_infos+i;
-    printf("Process n°%d\n rank : %d\n num_porcs : %d\n pid : %d\n port : %d\n name_length : %d\n name : %s\n",i, conn_info->rank, conn_info->num_procs, conn_info->pid, conn_info->port, conn_info->name_length, conn_info->name);
+    conn_info = *(conn_infos+i);
+    printf("Process n°%d\n pid : %d\n port : %d\n name_length : %d\n name : %s\n",i, conn_info.pid, conn_info.port, conn_info.name_length, conn_info.name);
   }
   fflush(stdout);
 }
@@ -20,6 +20,40 @@ int do_socket(){
       ERROR_EXIT("ERROR setting socket options");
   return fd;
 }
+
+int do_accept(int sock, struct sockaddr * c_addr, socklen_t * c_addrlen){
+  int c_sock = accept(sock, c_addr, c_addrlen);
+  if(c_sock == -1)
+    ERROR_EXIT("ERROR accepting");
+  return c_sock;
+}
+
+void get_addr_info(const char* addr, const char* port, struct addrinfo** res){
+  assert(res);
+  int status;
+  struct addrinfo hints;
+
+  memset(&hints,0,sizeof(hints));
+
+  hints.ai_family=AF_INET;
+  hints.ai_socktype=SOCK_STREAM;
+
+  status = getaddrinfo(addr,port,&hints,res);
+  if(status!=0){
+    printf("getaddrinfo: returns %d aka %s\n", status, gai_strerror(status)); //fonction qui renvoie un message en rapport avec l'erreur détectée
+    exit(1);
+  }
+}
+
+void do_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen){
+  assert(addr);
+  int res = connect(sockfd, addr, addrlen);
+  if (res != 0) {
+    ERROR_EXIT("ERROR connecting");
+  }
+  //printf("> Connected to host.\n");
+}
+
 
 void init_serv_addr(struct sockaddr_in * addr){
   addr->sin_family = AF_INET;
@@ -37,6 +71,21 @@ int readline(int fd, char * buffer, int maxlen){
   return size_read;
 }
 
+int do_read(int fd, void * buffer, int to_read){
+  assert(buffer);
+  int i=0;
+  int size_read=0;
+  int res;
+   //try maximum of 1000 times
+  do{
+    res=read(fd, buffer+read, to_read-read);
+    if (res==-1) ERROR_EXIT("ERROR writing line");
+    size_read+=res;
+    i++;
+  } while(to_read != read);
+  return size_read;
+}
+
 int writeline(int fd_rcv, char * buffer, int maxlen){
   assert(buffer);
   int i=0;
@@ -50,7 +99,22 @@ int writeline(int fd_rcv, char * buffer, int maxlen){
     if (res==-1) ERROR_EXIT("ERROR writing line");
     sent+=res;
     i++;
-  } while(to_send != sent && i<1000);
+  } while(to_send != sent);
+  return sent;
+}
+
+int do_write(int fd_rcv, void * buffer, int to_send){
+  assert(buffer);
+  int i=0;
+  int sent=0;
+  int res;
+   //try maximum of 1000 times
+  do{
+    res=write(fd_rcv, buffer+sent, to_send-sent);
+    if (res==-1) ERROR_EXIT("ERROR writing line");
+    sent+=res;
+    i++;
+  } while(to_send != sent);
   return sent;
 }
 

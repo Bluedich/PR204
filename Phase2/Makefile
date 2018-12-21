@@ -16,8 +16,8 @@ EXECS = exemple
 default: $(EXECS)
 
 
-exemple: exemple.o dsm.o common.o
-	$(CLINKER) $(OPTFLAGS) -o exemple exemple.o dsm.o common.o $(LIBS)
+exemple: exemple.o dsm.o ../Phase1/common.o
+	$(CLINKER) $(OPTFLAGS) -o exemple exemple.o dsm.o ../Phase1/common.o $(LIBS)
 
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core

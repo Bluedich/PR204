@@ -51,13 +51,6 @@ int read_machine_file(int n, char machine_file[], char * machine_names[]){
   return n;
 }
 
-int do_accept(int sock, struct sockaddr * c_addr, socklen_t * c_addrlen){
-  int c_sock = accept(sock, c_addr, c_addrlen);
-  if(c_sock == -1)
-    ERROR_EXIT("ERROR accepting");
-  return c_sock;
-}
-
 int main(int argc, char *argv[])
 {
   char buffer[BUFFER_SIZE];
@@ -158,7 +151,7 @@ int main(int argc, char *argv[])
     }
 
     int * init_sock = malloc(sizeof(int)*num_procs);
-    dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t)*num_procs);
+    dsm_proc_conn_t * conn_infos = malloc(sizeof(dsm_proc_conn_t)*num_procs);
     struct sockaddr * addr = (struct sockaddr *) malloc(sizeof(struct sockaddr));
     socklen_t addrlen;
 
@@ -169,20 +162,21 @@ int main(int argc, char *argv[])
       /*  On recupere le nom de la machine distante */
       /* 1- d'abord la taille de la chaine */
       readline(init_sock[i], buffer, BUFFER_SIZE);
-      conn_info[i].name_length = atoi(buffer);
+      conn_infos[i].name_length = atoi(buffer);
       /* 2- puis la chaine elle-meme */
       readline(init_sock[i], buffer, BUFFER_SIZE);
-      strcpy(conn_info[i].name, buffer);
+      strcpy(conn_infos[i].name, buffer);
       /* On recupere le pid du processus distant  */
       readline(init_sock[i], buffer, BUFFER_SIZE);
-      conn_info[i].pid = atoi(buffer);
+      conn_infos[i].pid = atoi(buffer);
       /* On recupere le numero de port de la socket */
       /* d'ecoute des processus distants */
       readline(init_sock[i], buffer, BUFFER_SIZE);
-      conn_info[i].port = atoi(buffer);
-
+      conn_infos[i].port = atoi(buffer);
     }
 
+    test_conn_info(conn_infos, num_procs);
+    int size_written;
     for(i = 0; i < num_procs ; i++){
       /* envoi du nombre de processus aux processus dsm*/
       memset(buffer, 0, BUFFER_SIZE);
@@ -194,9 +188,7 @@ int main(int argc, char *argv[])
       writeline(init_sock[i], buffer, BUFFER_SIZE);
 
       /* envoi des infos de connexion aux processus */
-      conn_info[i].rank = i;
-      conn_info[i].num_procs = num_procs;
-      write(init_sock[i], conn_info, num_procs*sizeof(dsm_proc_conn_t));
+      do_write(init_sock[i], conn_infos, num_procs*sizeof(dsm_proc_conn_t));
     }
     /* gestion des E/S : on recupere les caracteres */
     /* sur les tubes de redirection de stdout/stderr */
@@ -206,7 +198,7 @@ int main(int argc, char *argv[])
     struct pollfd * fds = malloc(2*num_procs*sizeof(struct pollfd));
 
     for(i=0;i<num_procs;i++){
-      fds[i].fd =pipe_out[i];
+      fds[i].fd = pipe_out[i];
       fds[i].events = POLLIN;
     }
     for(i=num_procs;i<2*num_procs;i++){

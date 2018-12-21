@@ -1,31 +1,5 @@
 #include "common.h"
 
-void get_addr_info(const char* addr, const char* port, struct addrinfo** res){
-  assert(res);
-  int status;
-  struct addrinfo hints;
-
-  memset(&hints,0,sizeof(hints));
-
-  hints.ai_family=AF_INET;
-  hints.ai_socktype=SOCK_STREAM;
-
-  status = getaddrinfo(addr,port,&hints,res);
-  if(status!=0){
-    printf("getaddrinfo: returns %d aka %s\n", status, gai_strerror(status)); //fonction qui renvoie un message en rapport avec l'erreur détectée
-    exit(1);
-  }
-}
-
-void do_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-  assert(addr);
-  int res = connect(sockfd, addr, addrlen);
-  if (res != 0) {
-    ERROR_EXIT("ERROR connecting");
-  }
-  //printf("> Connected to host.\n");
-}
-
 int main(int argc, char **argv)
 {
    /* processus intermediaire pour "nettoyer" */

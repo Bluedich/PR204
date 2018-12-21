@@ -2,8 +2,6 @@
 
 int main(int argc, char **argv)
 {
-   printf("WASASASA SA SA\n" );
-
    char *pointer;
    char *current;
    int value;
