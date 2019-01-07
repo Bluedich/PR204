@@ -95,6 +95,7 @@ static void dsm_handler( void )
 {
    /* A modifier */
    printf("[%i] FAULTY  ACCESS !!! \n",DSM_NODE_ID);
+
    abort();
 }
 
@@ -104,6 +105,8 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
    /* A completer */
    /* adresse qui a provoque une erreur */
    void  *addr = info->si_addr;
+  //  printf("addresse qui a provoque l'erreur %i",info->si_addr);
+
   /* Si ceci ne fonctionne pas, utiliser a la place :*/
   /*
    #ifdef __x86_64__
@@ -118,6 +121,8 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
    pour plus tard (question ++):
    dsm_access_t access  = (((ucontext_t *)context)->uc_mcontext.gregs[REG_ERR] & 2) ? WRITE_ACCESS : READ_ACCESS;
   */
+
+
    /* adresse de la page dont fait partie l'adresse qui a provoque la faute */
    void  *page_addr  = (void *)(((unsigned long) addr) & ~(PAGE_SIZE-1));
 
@@ -158,37 +163,40 @@ char *dsm_init(int argc, char **argv)
    int size_read = do_read(sock_init, conn_infos, DSM_NODE_NUM*sizeof(dsm_proc_conn_t));
   //  printf("Size read : %d\n", size_read);
    printf("DSM_NODE_ID : %d\n", DSM_NODE_ID);
-   printf("Num port: %d\n", conn_infos[DSM_NODE_ID].port);
-   test_conn_info(conn_infos, DSM_NODE_NUM);
+   //test_conn_info(conn_infos, DSM_NODE_NUM);
 
    struct addrinfo* res_tab[DSM_NODE_NUM];
    int sock_tab[DSM_NODE_NUM-1];
 
    /* initialisation des connexions */
    /* avec les autres processus : connect/accept */
-  //  int id2connect;
-  //  int i;
-  //  int port;
-   //
-  //  for (i=0;i<DSM_NODE_ID;i++){
-  //    sock_tab[i] = creer_socket(CONNECT, &port);
-  //    id2connect = i;
-  //    sprintf(buffer,"%d",conn_infos[i].port);
-  //    get_addr_info(conn_infos[i].name, buffer, &res_tab[i]);
-  //    do_connect(sock_tab[i],res_tab[i]->ai_addr, res_tab[i]->ai_addrlen);
-  //  }
-  //  sock_tab[DSM_NODE_ID] = -1; // Pour indiquer que c'est nous
-  //  listen(sock_listen, -1);
-  //  for(i=DSM_NODE_ID+1;i<DSM_NODE_NUM-1;i++){
-  //    sock_tab[i] = do_accept(sock_listen, NULL, 0);
-  //  }
+   int i;
+   int port;
+
+   for (i=0;i<DSM_NODE_ID;i++){
+     sock_tab[i] = creer_socket(CONNECT, &port);
+     sprintf(buffer,"%d",conn_infos[i].port);
+     get_addr_info(conn_infos[i].name, buffer, &res_tab[i]);
+     do_connect(sock_tab[i],res_tab[i]->ai_addr, res_tab[i]->ai_addrlen);
+     printf("We (%d) connected to DSM_NODE %d\n", DSM_NODE_ID, i);
+     fflush(stdout);
+   }
+   sock_tab[DSM_NODE_ID] = -1; // Pour indiquer que c'est nous
+   listen(sock_listen, -1);
+   for(i=DSM_NODE_ID+1;i<DSM_NODE_NUM;i++){
+     sock_tab[i] = do_accept(sock_listen, NULL, 0);
+     printf("DSM_NODE %d connected to us (%d)\n", i, DSM_NODE_ID);
+     fflush(stdout);
+   }
+   printf("DSM_NODE %d connected to everybody\n", DSM_NODE_ID);
+   fflush(stdout);
 
    /* Allocation des pages en tourniquet */
-  //  for(index = 0; index < PAGE_NUMBER; index ++){
-  //    if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
-  //      dsm_alloc_page(index);
-  //    dsm_change_info( index, WRITE, index % DSM_NODE_NUM);
-  //  }
+   for(index = 0; index < PAGE_NUMBER; index ++){
+     if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
+       dsm_alloc_page(index);
+     dsm_change_info( index, WRITE, index % DSM_NODE_NUM);
+   }
 
    /* mise en place du traitant de SIGSEGV */
    act.sa_flags = SA_SIGINFO;
