@@ -35,30 +35,24 @@ int main(int argc, char **argv)
    newargv[newargc] = NULL;
 
    struct addrinfo* res;
+
    //get address info
    get_addr_info(argv[1], argv[2], &res);
-   fflush(stdout);
    //connect to initialisation socket
    do_connect(sock_init, res->ai_addr, res->ai_addrlen);
 
+   dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t));
+   memset(conn_info, 0, sizeof(dsm_proc_conn_t));
    /* Envoi du nom de machine & longeur nom au lanceur */
    memset(buffer, 0, BUFFER_SIZE);
    gethostname(buffer, BUFFER_SIZE);
-   sprintf(buffer2, "%d", (int) strlen(buffer));
-   writeline(sock_init, buffer2, BUFFER_SIZE);
-   writeline(sock_init, buffer, BUFFER_SIZE);
+   strcpy(conn_info->name, buffer);
+   conn_info->name_length = (int) strlen(buffer);
+   conn_info->pid = getpid();
+   conn_info->port = port_listen;
 
-   /* Envoi du pid au lanceur */
-   int pid = getpid();
-   sprintf(buffer, "%d", pid);
-   writeline(sock_init, buffer, BUFFER_SIZE);
-
-   /* Envoi du numero de port au lanceur */
-   /* pour qu'il le propage à tous les autres */
-   /* processus dsm */
-   printf("Port dans dsmwrap : %d", port_listen);
-   sprintf(buffer, "%d", port_listen);
-   writeline(sock_init, buffer, BUFFER_SIZE);
+   int size_written = do_write(sock_init, conn_info, sizeof(dsm_proc_conn_t));
+   printf("Size written : %d", size_written);
 
   //  for (i=0;i<argc;i++){
   //    printf("argument n %d : %s\n",i,argv[i]);

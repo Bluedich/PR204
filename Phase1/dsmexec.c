@@ -151,7 +151,9 @@ int main(int argc, char *argv[])
     }
 
     int * init_sock = malloc(sizeof(int)*num_procs);
+    int size_read;
     dsm_proc_conn_t * conn_infos = malloc(sizeof(dsm_proc_conn_t)*num_procs);
+    dsm_proc_conn_t * conn_info = malloc(sizeof(dsm_proc_conn_t));
     struct sockaddr * addr = (struct sockaddr *) malloc(sizeof(struct sockaddr));
     socklen_t addrlen;
 
@@ -159,20 +161,12 @@ int main(int argc, char *argv[])
 
       /* on accepte les connexions des processus dsm */
       init_sock[i] = do_accept(listen_sock, addr, &addrlen);
-      /*  On recupere le nom de la machine distante */
-      /* 1- d'abord la taille de la chaine */
-      readline(init_sock[i], buffer, BUFFER_SIZE);
-      conn_infos[i].name_length = atoi(buffer);
-      /* 2- puis la chaine elle-meme */
-      readline(init_sock[i], buffer, BUFFER_SIZE);
-      strcpy(conn_infos[i].name, buffer);
-      /* On recupere le pid du processus distant  */
-      readline(init_sock[i], buffer, BUFFER_SIZE);
-      conn_infos[i].pid = atoi(buffer);
-      /* On recupere le numero de port de la socket */
-      /* d'ecoute des processus distants */
-      readline(init_sock[i], buffer, BUFFER_SIZE);
-      conn_infos[i].port = atoi(buffer);
+      size_read = do_read(init_sock[i], conn_info, sizeof(dsm_proc_conn_t));
+      printf("Size read %d", size_read);
+      strcpy(conn_infos[i].name, conn_info->name);
+      conn_infos[i].name_length = conn_info->name_length;
+      conn_infos[i].pid = conn_info->pid;
+      conn_infos[i].port = conn_info->port;
     }
 
     test_conn_info(conn_infos, num_procs);
@@ -188,7 +182,9 @@ int main(int argc, char *argv[])
       writeline(init_sock[i], buffer, BUFFER_SIZE);
 
       /* envoi des infos de connexion aux processus */
-      do_write(init_sock[i], conn_infos, num_procs*sizeof(dsm_proc_conn_t));
+      size_written = do_write(init_sock[i], conn_infos, num_procs*sizeof(dsm_proc_conn_t));
+      // printf("Size written : %d\n", size_written);
+      // fflush(stdout);
     }
     /* gestion des E/S : on recupere les caracteres */
     /* sur les tubes de redirection de stdout/stderr */

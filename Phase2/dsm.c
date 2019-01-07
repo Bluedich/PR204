@@ -156,7 +156,7 @@ char *dsm_init(int argc, char **argv)
    /* nom de machine, numero de port, etc. */
    dsm_proc_conn_t * conn_infos = malloc(sizeof(dsm_proc_conn_t)*DSM_NODE_NUM);
    int size_read = do_read(sock_init, conn_infos, DSM_NODE_NUM*sizeof(dsm_proc_conn_t));
-   printf("Size read : %d", size_read);
+  //  printf("Size read : %d\n", size_read);
    printf("DSM_NODE_ID : %d\n", DSM_NODE_ID);
    printf("Num port: %d\n", conn_infos[DSM_NODE_ID].port);
    test_conn_info(conn_infos, DSM_NODE_NUM);
