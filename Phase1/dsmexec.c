@@ -1,3 +1,4 @@
+
 #include "common.h"
 #include <unistd.h>
 
@@ -169,7 +170,7 @@ int main(int argc, char *argv[])
       conn_infos[i].port = conn_info->port;
     }
 
-    test_conn_info(conn_infos, num_procs);
+    //test_conn_info(conn_infos, num_procs);
     int size_written;
     for(i = 0; i < num_procs ; i++){
       /* envoi du nombre de processus aux processus dsm*/

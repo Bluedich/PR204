@@ -39,9 +39,13 @@ typedef struct
    dsm_page_owner_t owner;
 } dsm_page_info_t;
 
+typedef struct {
+} dsm_daemon_arg_t;
+
 dsm_page_info_t table_page[PAGE_NUMBER];
 
 pthread_t comm_daemon;
+int * sock_tab;
 extern int DSM_NODE_ID;
 extern int DSM_NODE_NUM;
 

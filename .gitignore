@@ -1,6 +1,10 @@
 # Prerequisites
 *.d
 
+#Weird NFS files
+.nfs*
+
+
 # Object files
 *.o
 *.ko
