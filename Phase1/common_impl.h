@@ -12,7 +12,6 @@
 /* autres includes (eventuellement) */
 
 #define ERROR_EXIT(str) {perror(str);exit(EXIT_FAILURE);}
-#define BUFFER_SIZE 1024
 
 /* definition du type des infos */
 /* de connexion des processus dsm */

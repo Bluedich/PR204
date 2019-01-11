@@ -70,13 +70,37 @@ static void dsm_free_page( int numpage )
    return;
 }
 
+static void dsm_send_update_page_info(){
+  int i;
+  int size_written;
+  char buffer[BUFFER_SIZE];
+  // printf("[%i] Envoie de la maj\n", DSM_NODE_ID);
+  fflush(stdout);
+  memset(buffer,0,BUFFER_SIZE);
+  sprintf(buffer,"/update_info ");
+  memcpy(buffer+13, (char *) table_page, sizeof(dsm_page_info_t)*PAGE_NUMBER);
+  // printf("[%i] (update envoi) :'%s'\n", DSM_NODE_ID,buffer);
+  fflush(stdout);
+  for(i=0;i<DSM_NODE_NUM;i++){
+    if(i!=DSM_NODE_ID){
+      size_written = do_write(sock_tab[i],(void *) buffer, BUFFER_SIZE);
+      // printf("Size written : %d\n", size_written);
+    }
+  }
+}
+
 static void *dsm_comm_daemon( void *arg)
 {
   fflush(stdout);
   int retval;
   char buffer[BUFFER_SIZE];
+  char command_value[BUFFER_SIZE];
+  char command[BUFFER_SIZE];
+  int requester_id;
+  int page_num;
   struct pollfd * fds = malloc((DSM_NODE_NUM-1)*sizeof(struct pollfd));
   int i;
+  int k;
   for(i=0;i<DSM_NODE_ID;i++){
     fflush(stdout);
     fds[i].fd = sock_tab[i];
@@ -89,16 +113,67 @@ static void *dsm_comm_daemon( void *arg)
   }
   fflush(stdout);
   while(1){
-    printf("[%i] (dsm_comm_daemon) Waiting for incoming reqs \n", DSM_NODE_ID);
+    // printf("[%i] (dsm_comm_daemon) Waiting for incoming reqs \n", DSM_NODE_ID);
     fflush(stdout);
     retval = poll(fds, DSM_NODE_NUM-1, -1);
     if(retval == -1) ERROR_EXIT("ERROR polling");
     for(i=0;i<DSM_NODE_NUM-1;i++){
       if(fds[i].revents&POLLIN){
         memset(buffer, 0, BUFFER_SIZE);
-        int size_read = readline(fds[i].fd, buffer, BUFFER_SIZE);
+        int size_read = do_read(fds[i].fd, (void *) buffer, BUFFER_SIZE);
         if(size_read==0) ERROR_EXIT("ERROR reading : remote socket was closed");
-        printf("[%i] Daemon à reçu : %s\n", DSM_NODE_ID, buffer);
+        // printf("Size read : %d\n", size_read);
+        memset(command, 0, BUFFER_SIZE);
+        // printf("[%i] buffer : '%s'\n",DSM_NODE_ID,buffer);
+        fflush(stdout);
+
+        sscanf(buffer,"%s", command);
+        // printf("[%i] command : '%s'\n",DSM_NODE_ID,command,command_value);
+        fflush(stdout);
+
+        if(strcmp(command, "/request") == 0){
+          sscanf(buffer,"%s %d %d",command_value, &requester_id, &page_num);
+          // printf("[%i] %s from %d for page n°%d\n", DSM_NODE_ID, command,requester_id, page_num);
+          fflush(stdout);
+          //On envoit la page au demandeur
+          // //on envoie la version updatee du tableau page protégé
+          // dsm_change_info(page_num, PROTECTED, requester_id);
+          // dsm_send_update_page_info();
+          memset(buffer,0,BUFFER_SIZE);
+          sprintf(buffer,"/page_requested %d", page_num);
+          do_write(fds[i].fd,(void *) buffer, BUFFER_SIZE);
+          for (k=0;k<4;k++){
+            memset(buffer,0,BUFFER_SIZE);
+            memcpy(buffer,num2address(page_num)+(BUFFER_SIZE)*k, BUFFER_SIZE);
+            // printf("[%i] (page envoi) :'%d'\n", DSM_NODE_ID,buffer[0]);
+            fflush(stdout);
+            do_write(fds[i].fd,(void *) buffer, BUFFER_SIZE);
+          }
+          dsm_free_page(page_num);
+          //on envoie la version updatee du tableau
+          dsm_change_info(page_num, get_status(page_num), requester_id);
+          dsm_send_update_page_info();
+        }
+        else if(strcmp(command,"/update_info")==0){
+          memcpy((void *) table_page, (void *) buffer+13, sizeof(dsm_page_info_t)*PAGE_NUMBER);
+          // printf("Owner page 2 : %d\n", get_owner(2));
+          // printf("[%i] info page mis a jours\n", DSM_NODE_ID);
+          fflush(stdout);
+        }
+        else if(strcmp(command,"/page_requested")==0){
+          sscanf(buffer,"%s %d",command, &page_num);
+          dsm_alloc_page(page_num);
+          for (k=0;k<4;k++){
+            memset(buffer,0,BUFFER_SIZE);
+            do_read(fds[i].fd, (void *) buffer, BUFFER_SIZE);
+            memcpy((char *) num2address(page_num)+(BUFFER_SIZE)*k, (char *) buffer, BUFFER_SIZE);
+          }
+          // printf("Page received");
+          fflush(stdout);
+        }
+        else{
+          ERROR_EXIT("ERROR unrecognized command in daemon");
+        }
         fflush(stdout);
       }
     }
@@ -106,25 +181,29 @@ static void *dsm_comm_daemon( void *arg)
   return;
 }
 
-static int dsm_send(int dest,void *buf,size_t size)
+static int dsm_send(int dest,void *buf,size_t size) //on utilise do_write à la place
 {
    /* a completer */
 }
 
-static int dsm_recv(int from,void *buf,size_t size)
+static int dsm_recv(int from,void *buf,size_t size) //on utilise do_read à la place
 {
    /* a completer */
 }
 
-static void dsm_handler( int page_num, void * addr)
+static void dsm_handler( int page_num)
 {
   char buffer[BUFFER_SIZE];
-   printf("[%i] FAULTY  ACCESS !!! \n",DSM_NODE_ID);
+  //  printf("[%i] FAULTY  ACCESS !!! \n",DSM_NODE_ID);
    memset(buffer, 0, BUFFER_SIZE);
-   sprintf(buffer, "[%i] a reçu SIGSEGV à l'adresse : %p",DSM_NODE_ID, addr);
+   sprintf(buffer, "/request %d %d",DSM_NODE_ID, page_num);
+  //  printf("[%i] (handler) command envoyer : '%s'\n ",DSM_NODE_ID,buffer);
    fflush(stdout);
-   writeline(sock_tab[get_owner(page_num)], buffer, BUFFER_SIZE);
-   while(1){}
+   do_write(sock_tab[get_owner(page_num)], (void *) buffer, BUFFER_SIZE);
+   while(get_owner(page_num)!=DSM_NODE_ID){
+   }
+  //  printf( "[%i] J'ai obtenu la page %i !!!\n",DSM_NODE_ID, page_num);
+   fflush(stdout);
 }
 
 /* traitant de signal adequat */
@@ -156,12 +235,14 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
 
    if ((addr >= (void *)BASE_ADDR) && (addr < (void *)TOP_ADDR))
      {
-	dsm_handler(address2num(page_addr), addr);
+	dsm_handler(address2num(page_addr));
      }
    else
      {
 	/* SIGSEGV normal : ne rien faire*/
      }
+    //  printf("On a fini de traiter le SIGSEGV\n");
+     fflush(stdout);
 }
 
 /* Seules ces deux dernieres fonctions sont visibles et utilisables */
@@ -173,7 +254,7 @@ char *dsm_init(int argc, char **argv)
    int sock_init = atoi(argv[argc-2]);
    int sock_listen = atoi(argv[argc-1]);
    char buffer[BUFFER_SIZE];
-
+   table_page = malloc(PAGE_NUMBER*sizeof(dsm_page_info_t));
    /* reception du nombre de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_NUM)*/
    readline(sock_init, buffer, BUFFER_SIZE);
@@ -243,8 +324,14 @@ char *dsm_init(int argc, char **argv)
 
 void dsm_finalize( void )
 {
-   /* fermer proprement les connexions avec les autres processus */
-
+   /* fermer proprement les connexions avec dsm_handlerles autres processus */
+   sleep(2);
+   int i;
+   for(i=0;i<DSM_NODE_NUM;i++){
+     if(i!=DSM_NODE_ID){
+       close(sock_tab[i]);
+     }
+   }
    /* terminer correctement le thread de communication */
    /* pour le moment, on peut faire : */
    pthread_cancel(comm_daemon);

@@ -52,7 +52,7 @@ int main(int argc, char **argv)
    conn_info->port = port_listen;
 
    int size_written = do_write(sock_init, conn_info, sizeof(dsm_proc_conn_t));
-   printf("Size written : %d", size_written);
+  //  printf("Size written : %d", size_written);
 
   //  for (i=0;i<argc;i++){
   //    printf("argument n %d : %s\n",i,argv[i]);

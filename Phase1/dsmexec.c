@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
       /* on accepte les connexions des processus dsm */
       init_sock[i] = do_accept(listen_sock, addr, &addrlen);
       size_read = do_read(init_sock[i], conn_info, sizeof(dsm_proc_conn_t));
-      printf("Size read %d", size_read);
+      // printf("Size read %d", size_read);
       strcpy(conn_infos[i].name, conn_info->name);
       conn_infos[i].name_length = conn_info->name_length;
       conn_infos[i].pid = conn_info->pid;
@@ -225,8 +225,14 @@ int main(int argc, char *argv[])
     waitpid(child_pid[i], NULL, 0);
   }
   /* on ferme les descripteurs proprement */
-
+  for(i=0;i<num_procs;i++){
+    close(pipe_out[i]);
+  }
+  for(i=num_procs;i<2*num_procs;i++){
+    close(pipe_err[i]);
+  }
   /* on ferme la socket d'ecoute */
+  close(listen_sock);
   }
   exit(EXIT_SUCCESS);
 }

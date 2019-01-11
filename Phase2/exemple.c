@@ -1,10 +1,11 @@
 #include "dsm.h"
+#include "common.h"
 
 int main(int argc, char **argv)
 {
    char *pointer;
    char *current;
-   int value;
+   int value = 10;
 
    pointer = dsm_init(argc,argv);
    current = pointer;
@@ -13,18 +14,20 @@ int main(int argc, char **argv)
 
    if (DSM_NODE_ID == 0)
      {
-       current += 4*sizeof(int);
+       current += 2*PAGE_SIZE;
+       current += 16;
+       *current = 42;
        value = *((int *)current);
        printf("[%i] valeur de l'entier : %i\n", DSM_NODE_ID, value);
      }
    else if (DSM_NODE_ID == 1)
      {
        current += 2*PAGE_SIZE;
-       current += 16*sizeof(int);
-
+       current += 16;
+       printf("[%i] valeur de l'entier : %i\n", DSM_NODE_ID, value);
        value = *((int *)current);
        printf("[%i] valeur de l'entier : %i\n", DSM_NODE_ID, value);
+       fflush(stdout);
      }
-   while(1){}
    dsm_finalize();
 }

@@ -42,7 +42,7 @@ typedef struct
 typedef struct {
 } dsm_daemon_arg_t;
 
-dsm_page_info_t table_page[PAGE_NUMBER];
+dsm_page_info_t  * table_page;
 
 pthread_t comm_daemon;
 int * sock_tab;

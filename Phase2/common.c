@@ -29,7 +29,7 @@ int do_accept(int sock, struct sockaddr * c_addr, socklen_t * c_addrlen){
 }
 
 void get_addr_info(const char* addr, const char* port, struct addrinfo** res){
-  assert(res);
+  assert(res); 
   int status;
   struct addrinfo hints;
 
